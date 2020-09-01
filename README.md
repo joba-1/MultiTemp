@@ -14,7 +14,7 @@ Work in progress.
 
 ## Todo
 
-* Webpages for calibration
+* Webpages for calibration (currently calibration done manually and hardcoded in config.h)
 * MQTT publish temps
 * EEPROM calibration data
 
