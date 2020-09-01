@@ -35,6 +35,7 @@ Adafruit_ADS1115 ads;
 const uint16_t A_samples = A_SAMPLES;
 const uint16_t A_max = A_MAX;
 uint32_t _a_sum[4] = { 0 };         // sum of last analog reads
+uint16_t _a_freq = 0;
 
 // NTC characteristics (datasheet)
 static const uint32_t B[4] = { NTC_B, NTC_B, NTC_B, NTC_B };
@@ -93,10 +94,13 @@ void send_menu( const char *msg ) {
         "<h1>MultiTemp Status</h1>\n"
         "<p>Show Temperatures</p>\n";
   static const char form[] = "<p>%s</p>\n"
-        "<p>Temperature 1: %5.1f &#8451;,  NTC resistance: %d &#8486;,  Analog: %d</p>\n"
-        "<p>Temperature 2: %5.1f &#8451;,  NTC resistance: %d &#8486;,  Analog: %d</p>\n"
-        "<p>Temperature 3: %5.1f &#8451;,  NTC resistance: %d &#8486;,  Analog: %d</p>\n"
-        "<p>Temperature 4: %5.1f &#8451;,  NTC resistance: %d &#8486;,  Analog: %d</p>\n"
+        "<p>Temperature 1: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
+        "<p>Temperature 2: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
+        "<p>Temperature 3: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
+        "<p>Temperature 4: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
+        "<p></p>\n"
+        "<p>Frequency: %u Hz</p>\n"
+        "<p></p>\n"
         "<form action=\"/calib\">\n"
           "<button>Calibrate</button>\n"
         "</form>\n";
@@ -110,7 +114,7 @@ void send_menu( const char *msg ) {
     _temp_c[0], _r_ntc[0], _a_sum[0], 
     _temp_c[1], _r_ntc[1], _a_sum[1], 
     _temp_c[2], _r_ntc[2], _a_sum[2], 
-    _temp_c[3], _r_ntc[3], _a_sum[3]);
+    _temp_c[3], _r_ntc[3], _a_sum[3], _a_freq);
 
   web_server.setContentLength(len);
   web_server.send(200, "text/html", header);
@@ -145,19 +149,19 @@ void setup_Webserver() {
     }
     switch( n ) {
       case 1:
-        snprintf(msg, sizeof(msg), "%5.1f", _temp_c[0]);
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[0]);
         break;
       case 2:
-        snprintf(msg, sizeof(msg), "%5.1f", _temp_c[1]);
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[1]);
         break;
       case 3:
-        snprintf(msg, sizeof(msg), "%5.1f", _temp_c[2]);
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[2]);
         break;
       case 4:
-        snprintf(msg, sizeof(msg), "%5.1f", _temp_c[3]);
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[3]);
         break;
       default:
-        snprintf(msg, sizeof(msg), "%5.1f %5.1f %5.1f %5.1f", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
+        snprintf(msg, sizeof(msg), "%6.2f %6.2f %6.2f %6.2f", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
         break;
     }
     web_server.send(200, "text/plain", msg);
@@ -308,7 +312,8 @@ void handleFrequency() {
 
   uint32_t now = millis();
   if( now - start > 1000 ) {
-    printf("Measuring analog at %u Hz\n", count);
+    // printf("Measuring analog at %u Hz\n", count);
+    _a_freq = count;
     start = now;
     count = 0;
   }
@@ -355,7 +360,7 @@ void setup() {
 
 
 void loop() {
-  // handleFrequency();
+  handleFrequency();
   for( unsigned n = 0; n < 4; n++ ) {
     handleAnalog(_a_sum[n], _r_ntc[n], _temp_c[n], n);
     handleTempHistory(_temp_c[n], _t[n], sizeof(_t[n])/sizeof(*_t[n]), _t_pos[n], n);
@@ -365,14 +370,18 @@ void loop() {
   uint32_t now = millis();
   if( now - prev > 1000 ) {
     char msg[80];
-    snprintf(msg, sizeof(msg), "Temp1=%5.1f, Temp2=%5.1f, Temp3=%5.1f, Temp4=%5.1f", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
+    snprintf(msg, sizeof(msg), "Temp1-4 = %6.2f, %6.2f, %6.2f, %6.2f °C, %3u Hz", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3], _a_freq);
     Serial.println(msg);
-    if( count-- == 0 ) {
+    if( WiFi.status() == WL_CONNECTED && count-- == 0 ) {
       syslog.log(LOG_INFO, msg);
-      count = 100;
+      snprintf(msg, sizeof(msg), "Rntc1-4 = %6u, %6u, %6u, %6u Ohm", _r_ntc[0], _r_ntc[1], _r_ntc[2], _r_ntc[3]);
+      syslog.log(LOG_INFO, msg);
+      snprintf(msg, sizeof(msg), "Asum1-4 = %6u, %6u, %6u, %6u", _a_sum[0], _a_sum[1], _a_sum[2], _a_sum[3]);
+      syslog.log(LOG_INFO, msg);
+      count = 10;
     }
     prev = now;
   }
   handleWifi();
-  delay(1);
+  delay(200);
 }

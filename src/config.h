@@ -25,7 +25,7 @@
 #define ONLINE_LED_PIN   D4
 
 // Analog samples for averaging
-#define A_SAMPLES        1000
+#define A_SAMPLES        10
 // default gain 2/3: Vmax=6.144V => 32767*3.3/6.144 
 #define A_MAX            17600
 
