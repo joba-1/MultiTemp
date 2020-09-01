@@ -1,25 +1,22 @@
-# Reflowino
+# Measure Multiple Temperatures
 
-use an ESP8266, an ADS1115, two NTCs, an SSR and a cheap electrical toaster grill to build an SMD PCB reflow oven
+use an ESP8266, an ADS1115 and four NTCs to monitor heating system
 
 ## Status
 
 Work in progress.
 
-* Built into oven. Works fine. Currently no ADS1115 but internal A0 and only one NTC.
-* Temperature can be set via webpage and is maintained by pid loop.
-* PID parameters need optimization. 20% overshoot.
-* A pwm style fixed duty cycle of the SSR can be controlled via webpage
-* OTA is working to avoid touching high voltage stuff
-* Syslog works. Needed to give A0 to WIFI ~10ms within 40ms
+* OTA is working
+* Syslog works
+* Temperature measurement works
+* Webpage with temperatures works
 * Theory for temperature measuring is done (see below). Maybe needs a bit more calibration.
 
 ## Todo
 
-* PID parameters via webpage
-* Define temperature profile via web page
-* eans to store/retrieve profiles (could be spiffs, EEPROM, MQTT persistent topics, ...)
-* Provide status via Neopixel colors, mqtt, webpage
+* Webpages for calibration
+* MQTT publish temps
+* EEPROM calibration data
 
 ## NTC Temperature Measurement
 
@@ -45,6 +42,12 @@ Comparing Ax to A3 with A3 === 0 gives Ax ~ 0 for very high Rntc and Ax ~ -Amax 
            |          |
            A3         Ax (Vcc=0...-32667=Gnd)
 
+Since I need all 4 Ax and accuracy is good enough, I'll not use A3 as Vref but fixed Vmax = 6.144V
+
+    Vcc --- Rv ---+--- Rntc --- Gnd 
+                  |
+                  Ax (Vcc=0...17600=Gnd) (17600 = 32767/6.144V*3.3V)
+
 Voltage divider and some algebra with ohms law gives
 
 Rntc = -Rv * (1 + Amax/Ax) (2)
@@ -54,11 +57,14 @@ If Rv chosen to be same as Rn, then Vntc at Ax should be Vcc/2 at 25°C.
 Vcc/2 should result in Ax = -Amax/2. Put this Ax in (2) yields Rntc = Rv --> as expected.
 Put this Rntc as Rt in (1) gives T = 1 / (1/298.15 + 1/3950*ln(1)) = 298.15K = 25°C --> as expected.
 
-Choosing Rv: 100k is good for low to medium range up to 150°C but 10k gives ~10x better resolution at the high temperatures around 250°C that we need. An Rv of 1k gives bad resolution at room temperature, so my Rv will be 10k.
+Choosing Rv: 
+100k is good for low to medium range up to 150°C. 
+10k gives ~10x better resolution at high temperatures around 250°C.
+33k gives best resolution around 50°C +/- 50°C (delta A / 1°C > 500, so my Rv will be near 33k.
 
 ### Using ESP8266 ADC via NodeMCU A0
 
-This method is less accurate, but maybe good enough for the usecase:
+This method is less accurate, but maybe good enough for some usecase:
 
                               ADC
                                |
@@ -84,19 +90,8 @@ Solve for A0 to do some test calculations:
     -> Rntc * 1023 = (Rv + Rntc) * A0     | / (Rv + Rntc)
     -> Rntc * 1023 / (Rv + Rntc) = A0 
 
-## PID Loop or Bang Bang?
-
-I can only switch power on or off -> classic usecase for bang bang algorithm -> 
-switch on if below (Tset - lower tolerance) and switch off if above (Tset + upper tolerance).
-Choose tolerances such that T is close enough to Tset (-> low tolerances), switching is rare enough (-> high tolerances) and mean of T over an on/off cycle is as close as possible to Tset (-> since cooling is slower than heating, lower tolerance will be less than high tolerance). 
-
-But since I can switch on/off easily and relatively fast with SSR I can also do a kind of slow PWM and use that for PID control. Should result in T following Tset with less oscillation. Maybe that means even less stress on material, but could also mean more EMV due to more high power switching.
-
 ## Used Hardware
 
-* [Steinborg Mini Backofen 13 Liter | Timer | herhausnehmbares Krümelblech | 1200 Watt](https://www.amazon.de/dp/B07FK34XQH/ref=cm_sw_r_cp_apap_LjMqHc7jB2WBf)
-* [Haobase Temperatur Controller AC 24V-380V Output Solid State Relais 25 A](https://www.amazon.de/dp/B01FLG3X4M?ref=ppx_pop_mob_ap_share)
 * [LEORX NTC 3950 100k Thermistoren mit Teflon 5 PCS](https://www.amazon.de/dp/B01AA7U82C?ref=ppx_pop_mob_ap_share)
+* ADS1115 I2c 4 x 16bit ADC breakout board
 
-Pretty good oven for that purpose. Could keep all controls (Max tmperature, heating from bottom and/or top, 60min timer).
-ESP8266 is only on while timer is on.

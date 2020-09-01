@@ -12,7 +12,7 @@
   #define PASS      WlanConfig::Password
 #endif
 #ifndef NAME
-  #define NAME      "Reflow"
+  #define NAME      "MultiTemp"
 #endif
 #ifndef PORT
   #define PORT      80
@@ -24,28 +24,15 @@
 
 #define ONLINE_LED_PIN   D4
 
-// Switch stuff
-#define SWITCH_PIN       D8
-#define DUTY_CYCLE_MS    1000
-
-// PID stuff
-#define PID_K_P          0.6
-#define PID_K_I          0.1
-#define PID_K_D          0.8
-
 // Analog samples for averaging
-#define A_SAMPLES        4000
-#define A_MAX            1023
+#define A_SAMPLES        1000
+// default gain 2/3: Vmax=6.144V => 32767*3.3/6.144 
+#define A_MAX            17600
 
 // NTC parameters and voltage divider resistor
-#define NTC_B            3999
+#define NTC_B            3950
 #define NTC_R_N          100000
 #define NTC_T_N          25
-#define NTC_R_V          10000              
-
-// Neopixel stuff
-#define PIXEL_PIN        D5
-#define NUM_PIXELS       2
-#define NEO_CONFIG       (NEO_RGB+NEO_KHZ800)
+#define NTC_R_V          32900              
 
 #endif
