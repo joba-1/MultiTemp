@@ -65,7 +65,7 @@ void post_data() {
   static const char Uri[]="/write?db=" INFLUX_DB "&precision=s";
 
   char msg[300]; 
-  snprintf(msg, sizeof(msg), "temperatures t1=%.2f,t2=%.2f,t3=%.2f,t4=%.2f\n", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
+  snprintf(msg, sizeof(msg), "temperatures zulauf=%.2f,ruecklauf=%.2f,vorlauf=%.2f,kamin=%.2f\n", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
   http.begin(client, INFLUX_SERVER, INFLUX_PORT, Uri);
   http.setUserAgent(NAME);
   _influx_status = http.POST(msg);
@@ -406,7 +406,7 @@ void loop() {
       // syslog.log(LOG_INFO, msg);
       // snprintf(msg, sizeof(msg), "Asum1-4 = %6u, %6u, %6u, %6u", _a_sum[0], _a_sum[1], _a_sum[2], _a_sum[3]);
       // syslog.log(LOG_INFO, msg);
-      count = 300; // 5 min until next syslog
+      count = 60; // 1 min until next syslog
     }
     prev = now;
   }
