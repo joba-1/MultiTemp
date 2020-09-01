@@ -10,9 +10,10 @@ Work in progress.
 * Syslog works
 * Temperature measurement works
 * Webpage with temperatures works
+* Post to InfluxDB works
 * Theory for temperature measuring is done (see below). Maybe needs a bit more calibration.
 
-## Todo
+## Todo (maybe)
 
 * Webpages for calibration (currently calibration done manually and hardcoded in config.h)
 * MQTT publish temps
