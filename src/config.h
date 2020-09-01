@@ -18,6 +18,11 @@
   #define PORT      80
 #endif
 
+// InfluxDB server connection info
+#define INFLUX_SERVER "192.168.1.4"
+#define INFLUX_PORT   8086
+#define INFLUX_DB     "heating"
+
 // Syslog server connection info
 #define SYSLOG_SERVER "192.168.1.4"
 #define SYSLOG_PORT 514

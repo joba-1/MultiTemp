@@ -7,6 +7,9 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPUpdateServer.h>
 
+// Post to InfluxDB
+#include <ESP8266HTTPClient.h>
+
 // Syslog
 #include <WiFiUdp.h>
 #include <Syslog.h>
@@ -30,6 +33,11 @@ ESP8266WebServer web_server(PORT);
 
 ESP8266HTTPUpdateServer esp_updater;
 
+// Post to InfluxDB
+WiFiClient client;
+HTTPClient http;
+int _influx_status = 0;
+
 // Analog read samples
 Adafruit_ADS1115 ads;
 const uint16_t A_samples = A_SAMPLES;
@@ -50,6 +58,24 @@ double _temp_c[4] = { 0 };          // Celsius, calculated from NTC and R_v
 // Temperature history
 int16_t _t[4][8640/6];              // 1 day centicelsius temperature history in 60s intervals
 uint16_t _t_pos[4];                 // position in history buffer
+
+
+// Post data to InfluxDB
+void post_data() {
+  static const char Uri[]="/write?db=" INFLUX_DB "&precision=s";
+
+  char msg[300]; 
+  snprintf(msg, sizeof(msg), "temperatures t1=%.2f,t2=%.2f,t3=%.2f,t4=%.2f\n", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
+  http.begin(client, INFLUX_SERVER, INFLUX_PORT, Uri);
+  http.setUserAgent(NAME);
+  _influx_status = http.POST(msg);
+  String payload = http.getString();
+  http.end();
+  if( _influx_status < 200 || _influx_status > 299 ) {
+    snprintf(msg, sizeof(msg), "Post %s:%d%s status %d response '%s'", INFLUX_SERVER, INFLUX_PORT, Uri, _influx_status, payload.c_str());
+    syslog.log(LOG_ERR, msg);
+  };
+}
 
 
 // Default html menu page
@@ -99,7 +125,8 @@ void send_menu( const char *msg ) {
           "<tr><th>3</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
           "<tr><th>4</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
         "</table>\n"
-        "<p>Frequency: %u Hz</p>\n";
+        "<p>Frequency: %u Hz</p>\n"
+        "<p>InfluxDB: Status %d</p>\n";
         // "<p></p>\n"
         // "<form action=\"/calib\">\n"
         //   "<button>Calibrate</button>\n"
@@ -114,7 +141,7 @@ void send_menu( const char *msg ) {
     _temp_c[0], _r_ntc[0], _a_sum[0], 
     _temp_c[1], _r_ntc[1], _a_sum[1], 
     _temp_c[2], _r_ntc[2], _a_sum[2], 
-    _temp_c[3], _r_ntc[3], _a_sum[3], _a_freq);
+    _temp_c[3], _r_ntc[3], _a_sum[3], _a_freq, _influx_status);
 
   web_server.setContentLength(len);
   web_server.send(200, "text/html", header);
@@ -374,6 +401,7 @@ void loop() {
     Serial.println(msg);
     if( WiFi.status() == WL_CONNECTED && count-- == 0 ) {
       syslog.log(LOG_INFO, msg);
+      post_data();
       // snprintf(msg, sizeof(msg), "Rntc1-4 = %6u, %6u, %6u, %6u Ohm", _r_ntc[0], _r_ntc[1], _r_ntc[2], _r_ntc[3]);
       // syslog.log(LOG_INFO, msg);
       // snprintf(msg, sizeof(msg), "Asum1-4 = %6u, %6u, %6u, %6u", _a_sum[0], _a_sum[1], _a_sum[2], _a_sum[3]);
