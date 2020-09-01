@@ -19,7 +19,7 @@
 #include <math.h> // for log()
 
 #ifndef VERSION
-  #define VERSION   NAME " 1.0 " __DATE__ " " __TIME__
+  #define VERSION   NAME " 1.1 " __DATE__ " " __TIME__
 #endif
 
 // Syslog
@@ -91,19 +91,19 @@ void send_menu( const char *msg ) {
         "</style>\n"
       "</head>\n"
       "<body>\n"
-        "<h1>MultiTemp Status</h1>\n"
-        "<p>Show Temperatures</p>\n";
-  static const char form[] = "<p>%s</p>\n"
-        "<p>Temperature 1: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
-        "<p>Temperature 2: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
-        "<p>Temperature 3: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
-        "<p>Temperature 4: %6.2f &#8451;,  NTC resistance: %u &#8486;,  Analog: %u</p>\n"
-        "<p></p>\n"
-        "<p>Frequency: %u Hz</p>\n"
-        "<p></p>\n"
-        "<form action=\"/calib\">\n"
-          "<button>Calibrate</button>\n"
-        "</form>\n";
+        "<h1>MultiTemp NTC Status</h1>\n";
+  static const char form[] = "<p>%s</p><table>\n"
+          "<tr><th>Sensor</th><th>Temperature [&#8451;]</th><th>Resistance [&#8486;]</th><th>Analog</th></tr>\n"
+          "<tr><th>1</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>2</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>3</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>4</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+        "</table>\n"
+        "<p>Frequency: %u Hz</p>\n";
+        // "<p></p>\n"
+        // "<form action=\"/calib\">\n"
+        //   "<button>Calibrate</button>\n"
+        // "</form>\n";
   static const char footer[] =
       "</body>\n"
     "</html>\n";
@@ -374,14 +374,14 @@ void loop() {
     Serial.println(msg);
     if( WiFi.status() == WL_CONNECTED && count-- == 0 ) {
       syslog.log(LOG_INFO, msg);
-      snprintf(msg, sizeof(msg), "Rntc1-4 = %6u, %6u, %6u, %6u Ohm", _r_ntc[0], _r_ntc[1], _r_ntc[2], _r_ntc[3]);
-      syslog.log(LOG_INFO, msg);
-      snprintf(msg, sizeof(msg), "Asum1-4 = %6u, %6u, %6u, %6u", _a_sum[0], _a_sum[1], _a_sum[2], _a_sum[3]);
-      syslog.log(LOG_INFO, msg);
-      count = 10;
+      // snprintf(msg, sizeof(msg), "Rntc1-4 = %6u, %6u, %6u, %6u Ohm", _r_ntc[0], _r_ntc[1], _r_ntc[2], _r_ntc[3]);
+      // syslog.log(LOG_INFO, msg);
+      // snprintf(msg, sizeof(msg), "Asum1-4 = %6u, %6u, %6u, %6u", _a_sum[0], _a_sum[1], _a_sum[2], _a_sum[3]);
+      // syslog.log(LOG_INFO, msg);
+      count = 300; // 5 min until next syslog
     }
     prev = now;
   }
   handleWifi();
-  delay(200);
+  delay(200); // don't heat up ntc
 }
