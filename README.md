@@ -95,5 +95,4 @@ Solve for A0 to do some test calculations:
 ## Used Hardware
 
 * [LEORX NTC 3950 100k Thermistoren mit Teflon 5 PCS](https://www.amazon.de/dp/B01AA7U82C?ref=ppx_pop_mob_ap_share)
-* ADS1115 I2c 4 x 16bit ADC breakout board
-
+* [ADS1115 16-bit ADC 4-channel analog/digital converter](https://www.amazon.de/dp/B07S9RH1MQ/ref=cm_sw_r_em_apa_i_G.3tFbC2Z5NFAADS1115)
