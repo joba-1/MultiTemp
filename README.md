@@ -11,7 +11,7 @@ Work in progress.
 * Temperature measurement works
 * Webpage with temperatures works
 * Post to InfluxDB works
-* Theory for temperature measuring is done (see below). Maybe needs a bit more calibration.
+* Theory for temperature measuring is done (see below). Needs calibration to accomodate tolerances.
 
 ## Todo (maybe)
 
@@ -70,9 +70,9 @@ This method is less accurate, but maybe good enough for some usecase:
                               ADC
                                |
                   +--- 220k ---+--- 100k --- Gnd
-                  |
-                  A0 (Vcc=1023...0=Gnd)
-                  |
+                  |                                 NodeMCU board
+                  A0 (Vcc=1023...0=Gnd)            --------------------
+                  |                                 My voltage divider
     Vcc --- Rv ---+--- Rntc --- Gnd
 
 Calculation
@@ -86,7 +86,8 @@ Calculation
     -> Rntc = Rv * A0 / (1023 - A0)
 
 Solve for A0 to do some test calculations: 
-    Rntc = Rv * A0 / (1023 - A0)       | * (1023 - A0)
+
+       Rntc = Rv * A0 / (1023 - A0)       | * (1023 - A0)
     -> Rntc * 1023 - Rntc * A0 = Rv * A0  | + (Rntc * A0)
     -> Rntc * 1023 = (Rv + Rntc) * A0     | / (Rv + Rntc)
     -> Rntc * 1023 / (Rv + Rntc) = A0 
