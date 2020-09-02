@@ -94,5 +94,7 @@ Solve for A0 to do some test calculations:
 
 ## Used Hardware
 
-* [LEORX NTC 3950 100k Thermistoren mit Teflon 5 PCS](https://www.amazon.de/dp/B01AA7U82C?ref=ppx_pop_mob_ap_share)
+* [LEORX NTC 3950 100k Thermistoren mit Teflon 5 PCS](https://www.amazon.de/dp/B01AA7U82C?ref=ppx_pop_mob_ap_share) (mine had B=3966 - which is within tolerance)
 * [ADS1115 16-bit ADC 4-channel analog/digital converter](https://www.amazon.de/dp/B07S9RH1MQ/ref=cm_sw_r_em_apa_i_G.3tFbC2Z5NFAADS1115)
+* Any ESP8266 board you like (I used a NodeMCU V3 with onboard voltage divider at pin A0 which I needed for testing)
+* 4 * 33k resistors (low tolerance preferred - easier or even unneccesary to calibrate)
