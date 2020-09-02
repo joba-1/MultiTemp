@@ -22,7 +22,7 @@
 #include <math.h> // for log()
 
 #ifndef VERSION
-  #define VERSION   NAME " 1.1 " __DATE__ " " __TIME__
+  #define VERSION   NAME " 1.2 " __DATE__ " " __TIME__
 #endif
 
 // Syslog
@@ -125,8 +125,12 @@ void send_menu( const char *msg ) {
           "<tr><th>3</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
           "<tr><th>4</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
         "</table>\n"
-        "<p>Frequency: %u Hz</p>\n"
-        "<p>InfluxDB: Status %d</p>\n";
+        "<p></p>\n"
+        "<table>\n"
+          "<tr><td>Frequency [Hz]</td><td>%u</td></tr>\n"
+          "<tr><td>InfluxDB Status</td><td>%d</td></tr>\n"
+          "<tr><td>Firmware</td><td>" VERSION "</td></tr>\n"
+        "</table>\n";
         // "<p></p>\n"
         // "<form action=\"/calib\">\n"
         //   "<button>Calibrate</button>\n"
