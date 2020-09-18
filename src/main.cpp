@@ -22,7 +22,7 @@
 #include <math.h> // for log()
 
 #ifndef VERSION
-  #define VERSION   NAME " 1.2 " __DATE__ " " __TIME__
+  #define VERSION   NAME " 1.3 " __DATE__ " " __TIME__
 #endif
 
 // Syslog
@@ -39,25 +39,27 @@ HTTPClient http;
 int _influx_status = 0;
 
 // Analog read samples
-Adafruit_ADS1115 ads;
+#define NUM_SENSORS 8
+Adafruit_ADS1115 ads1(ADS1015_ADDRESS);
+Adafruit_ADS1115 ads2(ADS1015_ADDRESS+1);
 const uint16_t A_samples = A_SAMPLES;
 const uint16_t A_max = A_MAX;
-uint32_t _a_sum[4] = { 0 };         // sum of last analog reads
+uint32_t _a_sum[NUM_SENSORS] = { 0 };         // sum of last analog reads
 uint16_t _a_freq = 0;
 
 // NTC characteristics (datasheet)
-static const uint32_t B[4] = { NTC_B, NTC_B, NTC_B, NTC_B };
-static const uint32_t R_n[4] = { NTC_R_N, NTC_R_N, NTC_R_N, NTC_R_N }; // Ohm
-static const uint32_t T_n[4] = { NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N }; // Celsius
+static const uint32_t B[NUM_SENSORS] = { NTC_B, NTC_B, NTC_B, NTC_B, NTC_B, NTC_B, NTC_B, NTC_B };
+static const uint32_t R_n[NUM_SENSORS] = { NTC_R_N, NTC_R_N, NTC_R_N, NTC_R_N, NTC_R_N, NTC_R_N, NTC_R_N, NTC_R_N }; // Ohm
+static const uint32_t T_n[NUM_SENSORS] = { NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N }; // Celsius
 
-static const uint32_t R_v[4] = { NTC_R_V, NTC_R_V, NTC_R_V, NTC_R_V }; // Ohm, voltage divider resistor for NTC
+static const uint32_t R_v[NUM_SENSORS] = { NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N, NTC_T_N }; // Ohm, voltage divider resistor for NTC
 
-uint32_t _r_ntc[4] = { 0 };         // Ohm, resistance updated with each analog read
-double _temp_c[4] = { 0 };          // Celsius, calculated from NTC and R_v
+uint32_t _r_ntc[NUM_SENSORS] = { 0 };         // Ohm, resistance updated with each analog read
+double _temp_c[NUM_SENSORS] = { 0 };          // Celsius, calculated from NTC and R_v
 
 // Temperature history
-int16_t _t[4][8640/6];              // 1 day centicelsius temperature history in 60s intervals
-uint16_t _t_pos[4];                 // position in history buffer
+int16_t _t[NUM_SENSORS][8640/6];              // 1 day centicelsius temperature history in 60s intervals
+uint16_t _t_pos[NUM_SENSORS];                 // position in history buffer
 
 
 // Post data to InfluxDB
@@ -65,7 +67,8 @@ void post_data() {
   static const char Uri[]="/write?db=" INFLUX_DB "&precision=s";
 
   char msg[300]; 
-  snprintf(msg, sizeof(msg), "temperatures zulauf=%.2f,ruecklauf=%.2f,vorlauf=%.2f,kamin=%.2f\n", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
+  snprintf(msg, sizeof(msg), "temperatures zulauf=%.2f,ruecklauf=%.2f,vorlauf=%.2f,kamin=%.2f,frei1=%.2f,frei2=%.2f,frei3=%.2f,frei4=%.2f\n", 
+    _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3], _temp_c[4], _temp_c[5], _temp_c[6], _temp_c[7]);
   http.begin(client, INFLUX_SERVER, INFLUX_PORT, Uri);
   http.setUserAgent(NAME);
   _influx_status = http.POST(msg);
@@ -124,6 +127,10 @@ void send_menu( const char *msg ) {
           "<tr><th>2</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
           "<tr><th>3</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
           "<tr><th>4</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>5</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>6</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>7</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
+          "<tr><th>8</th><th>%6.2f</th><td>%u</td><td>%u</td></tr>\n"
         "</table>\n"
         "<p></p>\n"
         "<table>\n"
@@ -145,7 +152,12 @@ void send_menu( const char *msg ) {
     _temp_c[0], _r_ntc[0], _a_sum[0], 
     _temp_c[1], _r_ntc[1], _a_sum[1], 
     _temp_c[2], _r_ntc[2], _a_sum[2], 
-    _temp_c[3], _r_ntc[3], _a_sum[3], _a_freq, _influx_status);
+    _temp_c[3], _r_ntc[3], _a_sum[3], 
+    _temp_c[4], _r_ntc[4], _a_sum[4], 
+    _temp_c[5], _r_ntc[5], _a_sum[5], 
+    _temp_c[6], _r_ntc[6], _a_sum[6], 
+    _temp_c[7], _r_ntc[7], _a_sum[7], 
+    _a_freq, _influx_status);
 
   web_server.setContentLength(len);
   web_server.send(200, "text/html", header);
@@ -191,8 +203,21 @@ void setup_Webserver() {
       case 4:
         snprintf(msg, sizeof(msg), "%6.2f", _temp_c[3]);
         break;
+      case 5:
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[4]);
+        break;
+      case 6:
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[5]);
+        break;
+      case 7:
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[6]);
+        break;
+      case 8:
+        snprintf(msg, sizeof(msg), "%6.2f", _temp_c[7]);
+        break;
       default:
-        snprintf(msg, sizeof(msg), "%6.2f %6.2f %6.2f %6.2f", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3]);
+        snprintf(msg, sizeof(msg), "%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f", 
+        _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3], _temp_c[4], _temp_c[5], _temp_c[6], _temp_c[7]);
         break;
     }
     web_server.send(200, "text/plain", msg);
@@ -311,7 +336,13 @@ void handleAnalog( uint32_t &a_sum, uint32_t &r_ntc, double &temp_c, unsigned n 
   static uint16_t a[4][A_samples] = { 0 }; // last analog reads
   static uint16_t a_pos[4] = { A_samples, A_samples, A_samples, A_samples }; // sample index
 
-  uint16_t value = ads.readADC_SingleEnded(n);
+  uint16_t value;
+  if( n < 4 ) {
+    value = ads1.readADC_SingleEnded(n);
+  }
+  else {
+    value = ads2.readADC_SingleEnded(n-4);
+  }
 
   // first time init
   if( a_pos[n] == A_samples ) {
@@ -378,7 +409,8 @@ void setup() {
   setup_Wifi();
 
   // ADS1115 init
-  ads.begin();
+  ads1.begin();
+  ads1.begin();
 
   // Syslog setup
   syslog.server(SYSLOG_SERVER, SYSLOG_PORT);
@@ -389,10 +421,9 @@ void setup() {
   Serial.println("\nBooted " VERSION);
 }
 
-
 void loop() {
   handleFrequency();
-  for( unsigned n = 0; n < 4; n++ ) {
+  for( unsigned n = 0; n < NUM_SENSORS; n++ ) {
     handleAnalog(_a_sum[n], _r_ntc[n], _temp_c[n], n);
     handleTempHistory(_temp_c[n], _t[n], sizeof(_t[n])/sizeof(*_t[n]), _t_pos[n], n);
   }
@@ -400,8 +431,9 @@ void loop() {
   static uint16_t count = 0;
   uint32_t now = millis();
   if( now - prev > 1000 ) {
-    char msg[80];
-    snprintf(msg, sizeof(msg), "Temp1-4 = %6.2f, %6.2f, %6.2f, %6.2f °C, %3u Hz", _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3], _a_freq);
+    static char msg[100];
+    snprintf(msg, sizeof(msg), "Temp1-8 = %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f °C, %3u Hz", 
+      _temp_c[0], _temp_c[1], _temp_c[2], _temp_c[3], _temp_c[4], _temp_c[5], _temp_c[6], _temp_c[7] , _a_freq);
     Serial.println(msg);
     if( WiFi.status() == WL_CONNECTED && count-- == 0 ) {
       syslog.log(LOG_INFO, msg);
